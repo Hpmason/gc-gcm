@@ -1,7 +1,7 @@
+use gc_gcm::{DirEntry, File, GcmFile};
 use memmap::Mmap;
 use rayon::prelude::*;
 use structopt::StructOpt;
-use gc_gcm::{GcmFile, DirEntry, File};
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -16,8 +16,11 @@ enum Args {
         #[structopt(help = "Path to folder to extract root of ISO to. Will be created if missing")]
         to: PathBuf,
 
-        #[structopt(long, help = "Run the extraction single threaded. Recommended for HDDs and other physical media.")]
-        single_thread: bool
+        #[structopt(
+            long,
+            help = "Run the extraction single threaded. Recommended for HDDs and other physical media."
+        )]
+        single_thread: bool,
     },
 
     #[structopt(about = "List the file tree of the given GCM ISO")]
@@ -67,7 +70,7 @@ fn extract_entry<'a>(entry: DirEntry<'a>, path: &Path, files: &mut Vec<(PathBuf,
 fn extract(path: PathBuf, to: &Path, single_thread: bool) {
     let file = std::fs::File::open(&path).unwrap();
     let mmap = unsafe { Mmap::map(&file).unwrap() };
-    let mut cursor = binread::io::Cursor::new(&mmap[..]);
+    let mut cursor = binrw::io::Cursor::new(&mmap[..]);
     let iso = GcmFile::from_reader(&mut cursor).unwrap();
 
     let mut files = Vec::new();
@@ -75,10 +78,7 @@ fn extract(path: PathBuf, to: &Path, single_thread: bool) {
         extract_entry(entry, to, &mut files)
     }
 
-    if let Err(err) = fs::write(
-        to.join("boot.dol"),
-        &iso.dol.raw_data
-    ) {
+    if let Err(err) = fs::write(to.join("boot.dol"), &iso.dol.raw_data) {
         println!("Path: boot.dol");
         println!("Error: {:?}", err);
         println!();
@@ -90,7 +90,7 @@ fn extract(path: PathBuf, to: &Path, single_thread: bool) {
         let start = file.offset as usize;
         let end = start + (file.size as usize);
         let file = &iso[start..end];
-        
+
         if let Err(err) = fs::write(path, file) {
             println!("Path: {}", path.display());
             println!("Error: {:?}", err);
@@ -109,8 +109,12 @@ fn main() {
     let args = Args::from_args();
 
     match args {
-        Args::Extract { iso, to, single_thread } => extract(iso, &to, single_thread),
+        Args::Extract {
+            iso,
+            to,
+            single_thread,
+        } => extract(iso, &to, single_thread),
         Args::Tree { iso } => tree(iso),
-        Args::Explain => println!("{}", include_str!("explain.txt"))
+        Args::Explain => println!("{}", include_str!("explain.txt")),
     }
 }

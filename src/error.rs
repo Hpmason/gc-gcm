@@ -4,7 +4,7 @@ use std::io;
 /// An error resulting from parsing or opening a GcmFile
 #[derive(Debug)]
 pub enum GcmError {
-    ParseError(binread::Error),
+    ParseError(binrw::Error),
 
     #[cfg(not(feature = "no_std"))]
     IoError(std::io::Error),
@@ -17,8 +17,8 @@ impl From<io::Error> for GcmError {
     }
 }
 
-impl From<binread::Error> for GcmError {
-    fn from(err: binread::Error) -> Self {
+impl From<binrw::Error> for GcmError {
+    fn from(err: binrw::Error) -> Self {
         GcmError::ParseError(err)
     }
 }

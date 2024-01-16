@@ -1,9 +1,13 @@
 use crate::GcmError;
+use binrw::{
+    io::{self, SeekFrom},
+    BinRead, BinReaderExt,
+};
 use core::mem::size_of;
-use binread::{BinRead, BinReaderExt, io::{self, SeekFrom}, helpers::read_bytes};
 
 #[cfg(feature = "no_std")]
 use crate::std::vec::Vec;
+use std::convert::TryFrom;
 
 const SECTION_COUNT: usize = 18;
 
@@ -49,14 +53,14 @@ pub struct DolFile {
 
     #[br(seek_before = SeekFrom::Current(-(DolHeader::SIZE as i64)))]
     #[br(count = header.calculate_file_size())]
-    #[br(parse_with = read_bytes)]
     pub raw_data: Vec<u8>,
 }
 
 impl DolFile {
     /// Parse a dol from a reader that implements `io::Read` and `io::Seek`
     pub fn from_reader<R>(reader: &mut R) -> Result<Self, GcmError>
-        where R: io::Read + io::Seek,
+    where
+        R: io::Read + io::Seek,
     {
         Ok(reader.read_be()?)
     }
@@ -69,7 +73,8 @@ use std::path::Path;
 impl DolFile {
     /// Open a file from a given bath as a DolFile.
     pub fn open<P>(path: P) -> Result<Self, GcmError>
-        where P: AsRef<Path>,
+    where
+        P: AsRef<Path>,
     {
         let mut reader = std::io::BufReader::new(std::fs::File::open(path)?);
         Ok(reader.read_be()?)

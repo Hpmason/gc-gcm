@@ -1,5 +1,5 @@
+use crate::{FileSystem, FsNode};
 use core::fmt;
-use crate::{FsNode, FileSystem};
 
 #[cfg(feature = "no_std")]
 use crate::std::vec::Vec;
@@ -10,10 +10,11 @@ impl FileSystem {
         let files = &self.files;
         let mut entries = Vec::new();
 
-        let mut entries_iter = self.files
-            .iter()
-            .enumerate()
-            .map(|(i, node)| DirEntry { node, files, index: i + 1 });
+        let mut entries_iter = self.files.iter().enumerate().map(|(i, node)| DirEntry {
+            node,
+            files,
+            index: i + 1,
+        });
 
         while let Some(entry) = entries_iter.next() {
             recursive_remove(&entry, &mut entries_iter);
@@ -25,14 +26,14 @@ impl FileSystem {
     }
 
     pub fn get_child(&self, child_name: &str) -> Option<DirEntry> {
-        self.iter_root()
-            .find(|entry| {
-                match entry.node {
-                    FsNode::Directory { name, .. } | FsNode::File { name, .. }
-                        if name == child_name => true,
-                    _ => false
-                }
-            })
+        self.iter_root().find(|entry| match entry.node {
+            FsNode::Directory { name, .. } | FsNode::File { name, .. }
+                if name.to_string() == child_name =>
+            {
+                true
+            }
+            _ => false,
+        })
     }
 }
 
@@ -72,7 +73,7 @@ impl<'a> DirEntry<'a> {
             FsNode::Directory { .. } => true,
             FsNode::File { .. } => false,
         }
-    } 
+    }
 
     pub fn is_file(&self) -> bool {
         match self.node {
@@ -81,9 +82,9 @@ impl<'a> DirEntry<'a> {
         }
     }
 
-    pub fn entry_name(&self) -> &'a str {
+    pub fn entry_name(&self) -> String {
         match self.node {
-            FsNode::File { name, .. } | FsNode::Directory { name, .. } => &name,
+            FsNode::File { name, .. } | FsNode::Directory { name, .. } => name.to_string(),
         }
     }
 
@@ -95,11 +96,15 @@ impl<'a> DirEntry<'a> {
                 let end_index = *end_index as usize;
 
                 let mut entries = Vec::new();
-                let mut entries_iter = 
+                let mut entries_iter =
                     files[index..end_index - 1]
                         .iter()
                         .enumerate()
-                        .map(|(i, node)| DirEntry { node, files, index: index + i + 1 });
+                        .map(|(i, node)| DirEntry {
+                            node,
+                            files,
+                            index: index + i + 1,
+                        });
 
                 while let Some(entry) = entries_iter.next() {
                     recursive_remove(&entry, &mut entries_iter);
@@ -107,26 +112,26 @@ impl<'a> DirEntry<'a> {
                 }
 
                 Some(entries.into_iter())
-            },
+            }
             FsNode::File { .. } => None,
         }
     }
 
     pub fn get_child(&self, child_name: &str) -> Option<DirEntry<'a>> {
-        self.iter_dir()?
-            .find(|entry| {
-                match entry.node {
-                    FsNode::Directory { name, .. } | FsNode::File { name, .. }
-                        if name == child_name => true,
-                    _ => false
-                }
-            })
+        self.iter_dir()?.find(|entry| match entry.node {
+            FsNode::Directory { name, .. } | FsNode::File { name, .. }
+                if name.to_string() == child_name =>
+            {
+                true
+            }
+            _ => false,
+        })
     }
 
     pub fn as_file(&self) -> Option<File> {
         match self.node {
             &FsNode::File { offset, size, .. } => Some(File { offset, size }),
-            FsNode::Directory { .. } => None
+            FsNode::Directory { .. } => None,
         }
     }
 }
@@ -136,5 +141,5 @@ impl<'a> DirEntry<'a> {
 #[derive(Debug, Clone, Copy)]
 pub struct File {
     pub offset: u32,
-    pub size: u32
+    pub size: u32,
 }
